@@ -26,44 +26,57 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-from statsmodels.tsa.ar_model import AutoReg
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from sklearn.metrics import mean_squared_error
+
+# Load the dataset
 data = pd.read_csv("/content/KwhConsumptionBlower78_1.csv")
 print("Shape of the dataset:", data.shape)
 print("First 50 rows of the dataset:")
 print(data.head(50))
+
+# Plot the first 50 values of the "Consumption" column
 plt.plot(data['Consumption'].head(50))
-plt.title('First 50 values of the "International" column')
+plt.title('First 50 values of the "Consumption" column')
 plt.xlabel('Index')
-plt.ylabel('International Passengers')
+plt.ylabel('Power Consumption')
 plt.show()
-rolling_mean_5 = data['Consumption'].rolling(window=5).mean()
-print("First 10 values of the rolling mean with window size 5:")
-print(rolling_mean_5.head(10))
-rolling_mean_10 = data['Consumption'].rolling(window=10).mean()
-plt.plot(data['Consumption'], label='Original Data')
-plt.plot(rolling_mean_10, label='Rolling Mean (window=10)')
-plt.title('Original Data and Fitted Value (Rolling Mean)')
+
+# 1. Moving Average (MA) Model
+# MA model with a lag order of 13
+lag_order = 13
+ma_model = ARIMA(data['Consumption'], order=(0, 0, lag_order))  # (p=0, d=0, q=lag_order)
+ma_model_fit = ma_model.fit()
+
+# Predictions from MA model
+ma_predictions = ma_model_fit.predict(start=lag_order, end=len(data)-1)
+ma_mse = mean_squared_error(data['Consumption'][lag_order:], ma_predictions)
+print('MA Model Mean Squared Error (MSE):', ma_mse)
+
+# Plot the original data vs MA model predictions
+plt.plot(data['Consumption'][lag_order:], label='Original Data')
+plt.plot(ma_predictions, label='MA Predictions')
+plt.title('MA Model Predictions vs Original Data')
 plt.xlabel('Index')
 plt.ylabel('Power Consumption')
 plt.legend()
 plt.show()
-lag_order = 13
-model = AutoReg(data['Consumption'], lags=lag_order)
-model_fit = model.fit()
-plot_acf(data['Consumption'])
-plt.title('Autocorrelation Function (ACF)')
-plt.show()
 
-plot_pacf(data['Consumption'])
-plt.title('Partial Autocorrelation Function (PACF)')
-plt.show()
-predictions = model_fit.predict(start=lag_order, end=len(data)-1)
-mse = mean_squared_error(data['Consumption'][lag_order:], predictions)
-print('Mean Squared Error (MSE):', mse)
-plt.plot(data['Consumption'][lag_order:], label='Original Data')
-plt.plot(predictions, label='Predictions')
-plt.title('AR Model Predictions vs Original Data')
+# 2. Exponential Smoothing Model
+# Exponential smoothing with trend and seasonal components
+exp_smoothing_model = ExponentialSmoothing(data['Consumption'], trend='add', seasonal=None, seasonal_periods=None)
+exp_smoothing_fit = exp_smoothing_model.fit()
+
+# Predictions from Exponential Smoothing
+exp_smoothing_predictions = exp_smoothing_fit.fittedvalues
+exp_smoothing_mse = mean_squared_error(data['Consumption'], exp_smoothing_predictions)
+print('Exponential Smoothing Mean Squared Error (MSE):', exp_smoothing_mse)
+
+# Plot the original data vs Exponential Smoothing predictions
+plt.plot(data['Consumption'], label='Original Data')
+plt.plot(exp_smoothing_predictions, label='Exponential Smoothing Predictions')
+plt.title('Exponential Smoothing Predictions vs Original Data')
 plt.xlabel('Index')
 plt.ylabel('Power Consumption')
 plt.legend()
@@ -74,14 +87,14 @@ plt.show()
 ### OUTPUT:
 
 #### original data and fitted value :
-![alt text](image-2.png)
+![alt text](image-7.png)
 
 #### Plot Partial Autocorrelation Function (PACF) and Autocorrelation Function (ACF) :
-![alt text](image-4.png)
-![alt text](image-5.png)
+![alt text](image-8.png)
+
 
 #### Plot the original data and predictions :
-![alt text](image-6.png)
+![alt text](image-9.png)
 
 
 
